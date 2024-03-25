@@ -1,27 +1,14 @@
 const task = require('./task');
 
-
 class CoreLogic {
- 
-
   async task(round) {
-    try {
-      const result = await this.submission.task(round);
-      return result;
-    } catch (error) {
-      console.error('Error in CoreLogic.task:', error);
-      throw error;
-    }
+    const result = await task.submission.task(round);
+    return result;
   }
 
   async submitTask(round) {
-    try {
-      const submission = await this.submission.submitTask(round);
-      return submission;
-    } catch (error) {
-      console.error('Error in CoreLogic.submitTask:', error);
-      throw error;
-    }
+    const submission = await task.submission.submitTask(round);
+    return submission;
   }
 
   async auditTask(round) {

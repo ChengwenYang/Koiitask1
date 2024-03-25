@@ -1,5 +1,5 @@
 const axios = require('axios');
-
+const {namespaceWrapper} = require('../_koiiNode/koiiNode.js');
 class Submission {
   constructor() {
     //this.stockSymbol = '000001'; // 以“000001”作为监控的股票符号示例
@@ -14,9 +14,10 @@ class Submission {
     try {
       const response = await axios.get(url);
       const data = response.data;
+      console.log(this.formatStockInfo(data));
       return this.formatStockInfo(data); // 格式化并返回股票信息
     } catch (error) {
-      console.error(`Error fetching stock info for ${this.stockSymbol}:`, error);
+      console.error(`Error fetching stock info`, error);
       throw error; // 向上抛出异常
     }
   }
@@ -26,11 +27,11 @@ class Submission {
     // 假设我们只关注最新的一笔交易数据，可以根据需要调整
     const latestTrade = stockData[0]; // 取第一条数据作为最新交易数据
     const formattedData = {
-      date: latestTrade['d_'], // 数据归属日期
-      time: latestTrade['t_'], // 时间
-      volume: parseInt(latestTrade['v_'], 10), // 成交量
-      price: parseFloat(latestTrade['p_']), // 成交价
-      tradeDirection: latestTrade['ts_'], // 交易方向
+      date: latestTrade['d'], // 数据归属日期
+      time: latestTrade['t'], // 时间
+      volume: parseInt(latestTrade['v'], 10), // 成交量
+      price: parseFloat(latestTrade['p']), // 成交价
+      tradeDirection: latestTrade['ts'], // 交易方向
       timestamp: new Date() // 使用当前时间作为时间戳
     };
 
@@ -40,11 +41,12 @@ class Submission {
   // 任务执行逻辑
   async task(round) {
     try {
-      console.log(`ROUND ${round}: Fetching and storing stock info for ${this.stockSymbol}`);
+      console.log(`ROUND ${round}: Fetching and storing stock info`);
       const stockInfo = await this.fetchStockInfo();
       // 存储获取到的股票信息
       await namespaceWrapper.storeSet('stockInfo', JSON.stringify(stockInfo));
       console.log('Stored stock info:', stockInfo);
+      
       return stockInfo;
     } catch (err) {
       console.error('ERROR IN EXECUTING TASK:', err);
@@ -79,3 +81,6 @@ class Submission {
     return value;
   }
 }
+
+const submission = new Submission();
+module.exports = { submission };
