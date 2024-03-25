@@ -76,71 +76,66 @@ class Submission {
     console.log('IN FETCH SUBMISSION for round:', round);
     const value = await namespaceWrapper.storeGet('stockInfo'); // 检索存储的股票信息
     console.log('Fetched stock info:', value);
-    return value;
+    //cid = await this.uploadIPFS(value, round);
+    cid = cid;
+    return cid;
   }
 
-uploadIPFS = async function (data, round) {
-  let proofPath = `proofs.json`;
-  let basePath = '';
-  try {
-    basePath = await namespaceWrapper.getBasePath();
-    fs.writeFileSync(`${basePath}/${proofPath}`, JSON.stringify(data));
-  } catch (err) {
-    console.log(err);
-  }
-  let attempts = 0;
-  let maxRetries = 3;
-  if (storageClient) {
+
+
+
+
+  uploadIPFS = async function (data, round) {
+    // Use a dynamic file name including the round number to prevent overwrites and ensure unique paths for each upload.
+    let proofPath = `proofs-round-${round}.json`;
+    let basePath = '';
+  
+    try {
+      // Try to get the base path and prepare the full file path
+      basePath = await namespaceWrapper.getBasePath();
+      const fullPath = `${basePath}/${proofPath}`;
+      // Write the round data to a file in preparation for uploading
+      fs.writeFileSync(fullPath, JSON.stringify(data));
+      console.log(`Data for round ${round} written to ${fullPath} successfully.`);
+    } catch (err) {
+      console.error(`Failed to write data to file for round ${round}:`, err);
+      throw err; // Re-throw to handle the error upstream
+    }
+  
+    let attempts = 0;
+    const maxRetries = 3;
     while (attempts < maxRetries) {
-      let proof_cid;
       try {
-        // const basePath = await namespaceWrapper.getBasePath();
-        // let file = await getFilesFromPath(`${basePath}/${path}`);
-        // console.log(`${basePath}/${proofPath}`);
-        let spheronData = await storageClient.upload(
-          `${basePath}/${proofPath}`,
-          {
-            protocol: ProtocolEnum.IPFS,
-            name: 'taskData',
-            onUploadInitiated: uploadId => {
-              // console.log(`Upload with id ${uploadId} started...`);
-            },
-            onChunkUploaded: (uploadedSize, totalSize) => {
-              // console.log(`Uploaded ${uploadedSize} of ${totalSize} Bytes.`);
-            },
-          },
-        );
-        // CHANGE
-        proof_cid = {cid};
-
-        // console.log(`CID: ${proof_cid}`);
-        console.log('Arweave healthy list to IPFS: ', proof_cid);
-
+        // Attempt to upload the file to IPFS
+        let spheronData = await storageClient.upload(fullPath, {
+          protocol: ProtocolEnum.IPFS,
+          name: `taskData-round-${round}`,
+          onUploadInitiated: uploadId => console.log(`Upload initiated with ID: ${uploadId} for round ${round}`),
+          onChunkUploaded: (uploadedSize, totalSize) => console.log(`Uploaded ${uploadedSize} of ${totalSize} bytes for round ${round}.`),
+        });
+  
+        console.log(`Data for round ${round} uploaded to IPFS with CID: ${spheronData.cid}`);
+  
+        // Attempt to clean up the local file after successful upload
         try {
-          fs.unlinkSync(`${basePath}/${proofPath}`);
-        } catch (err) {
-          console.error(err);
+          fs.unlinkSync(fullPath);
+          console.log(`Temporary file for round ${round} deleted successfully.`);
+        } catch (cleanupErr) {
+          console.warn(`Failed to delete temporary file for round ${round}:`, cleanupErr);
         }
-        return proof_cid;
-      } catch (err) {
-        console.log('error uploading to IPFS, trying again', err);
+  
+        return spheronData.cid; // Return the CID after successful upload
+      } catch (uploadErr) {
+        console.error(`Failed to upload data for round ${round} to IPFS:`, uploadErr);
         attempts++;
         if (attempts < maxRetries) {
-          console.log(
-            `Waiting for 10 seconds before retrying... Attempt ${
-              attempts + 1
-            }/${maxRetries}`,
-          );
-          await new Promise(resolve => setTimeout(resolve, 10000)); // 10s delay
+          console.log(`Retrying upload for round ${round}... (${attempts}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds before retrying
         } else {
-          console.log('Max retries reached, exiting...');
+          console.error(`Max retries reached for uploading data of round ${round} to IPFS.`);
+          throw uploadErr; // Throw error after exceeding max retries
         }
       }
-      break;
     }
-  } else {
-    console.log('NODE DO NOT HAVE ACCESS TO Spheron');
-  }
-};
-
+  };
 }
