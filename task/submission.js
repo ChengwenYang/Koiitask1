@@ -78,4 +78,69 @@ class Submission {
     console.log('Fetched stock info:', value);
     return value;
   }
+
+uploadIPFS = async function (data, round) {
+  let proofPath = `proofs.json`;
+  let basePath = '';
+  try {
+    basePath = await namespaceWrapper.getBasePath();
+    fs.writeFileSync(`${basePath}/${proofPath}`, JSON.stringify(data));
+  } catch (err) {
+    console.log(err);
+  }
+  let attempts = 0;
+  let maxRetries = 3;
+  if (storageClient) {
+    while (attempts < maxRetries) {
+      let proof_cid;
+      try {
+        // const basePath = await namespaceWrapper.getBasePath();
+        // let file = await getFilesFromPath(`${basePath}/${path}`);
+        // console.log(`${basePath}/${proofPath}`);
+        let spheronData = await storageClient.upload(
+          `${basePath}/${proofPath}`,
+          {
+            protocol: ProtocolEnum.IPFS,
+            name: 'taskData',
+            onUploadInitiated: uploadId => {
+              // console.log(`Upload with id ${uploadId} started...`);
+            },
+            onChunkUploaded: (uploadedSize, totalSize) => {
+              // console.log(`Uploaded ${uploadedSize} of ${totalSize} Bytes.`);
+            },
+          },
+        );
+        // CHANGE
+        proof_cid = {cid};
+
+        // console.log(`CID: ${proof_cid}`);
+        console.log('Arweave healthy list to IPFS: ', proof_cid);
+
+        try {
+          fs.unlinkSync(`${basePath}/${proofPath}`);
+        } catch (err) {
+          console.error(err);
+        }
+        return proof_cid;
+      } catch (err) {
+        console.log('error uploading to IPFS, trying again', err);
+        attempts++;
+        if (attempts < maxRetries) {
+          console.log(
+            `Waiting for 10 seconds before retrying... Attempt ${
+              attempts + 1
+            }/${maxRetries}`,
+          );
+          await new Promise(resolve => setTimeout(resolve, 10000)); // 10s delay
+        } else {
+          console.log('Max retries reached, exiting...');
+        }
+      }
+      break;
+    }
+  } else {
+    console.log('NODE DO NOT HAVE ACCESS TO Spheron');
+  }
+};
+
 }
