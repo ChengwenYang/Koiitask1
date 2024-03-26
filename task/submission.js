@@ -10,6 +10,7 @@ class Submission {
   // 使用 axios 获取股票信息
   async fetchStockInfo() {
     // 注意替换"您的licence"为您的实际API许可证
+    // change this before deploy!!!!!!!!!
    // const apiKey = 'b997d4403688d5e65a'; 
     const url = `http://api.mairui.club/hsrl/zbdd/000001/b997d4403688d5e65a`;
 
