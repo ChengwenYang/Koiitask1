@@ -82,7 +82,7 @@ class Submission {
     const value = await namespaceWrapper.storeGet('stockInfo'); // 检索存储的股票信息
     console.log('Fetched stock info:', value);
     //test only
-    cid = await this.uploadIPFS(value, round);
+    const cid = await this.uploadIPFS(value, round);
     return cid;
   }
 
@@ -108,14 +108,22 @@ class Submission {
     while (attempts < maxRetries) {
       try {
         // Attempt to upload the file to IPFS
-        let spheronData = await storageClient.upload(fullPath, {
+        
+        const storageClient = new SpheronClient({ token: process.env.Spheron_Storage });
+        const basePath = await namespaceWrapper.getBasePath();
+        // TODO: 改成你自己的路径
+        const fullPath = `${basePath}abc.txt`;
+        console.log("地址: ", fullPath);
+        // TODO: 删除下面这个防止Api泄露
+        console.log("token", process.env.Spheron_Storage)
+        const { uploadId, bucketId, protocolLink, dynamicLinks, cid }  = await storageClient.upload(fullPath, {
           protocol: ProtocolEnum.IPFS,
           name: `taskData-round-${round}`,
           onUploadInitiated: uploadId => console.log(`Upload initiated with ID: ${uploadId} for round ${round}`),
           onChunkUploaded: (uploadedSize, totalSize) => console.log(`Uploaded ${uploadedSize} of ${totalSize} bytes for round ${round}.`),
         });
   
-        console.log(`Data for round ${round} uploaded to IPFS with CID: ${spheronData.cid}`);
+        
   
         // Attempt to clean up the local file after successful upload
         try {
@@ -125,7 +133,7 @@ class Submission {
           console.warn(`Failed to delete temporary file for round ${round}:`, cleanupErr);
         }
   
-        return spheronData.cid; // Return the CID after successful upload
+        return cid; // Return the CID after successful upload
       } catch (uploadErr) {
         console.error(`Failed to upload data for round ${round} to IPFS:`, uploadErr);
         attempts++;
