@@ -1,5 +1,7 @@
 const axios = require('axios');
 const {namespaceWrapper} = require('../_koiiNode/koiiNode.js');
+const fs = require('fs');
+const { SpheronClient, ProtocolEnum } = require('@spheron/storage');
 class Submission {
   constructor() {
     //this.stockSymbol = '000001'; // 以“000001”作为监控的股票符号示例
