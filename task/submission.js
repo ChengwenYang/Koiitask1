@@ -1,5 +1,7 @@
 const axios = require('axios');
 const {namespaceWrapper} = require('../_koiiNode/koiiNode.js');
+const fs = require('fs');
+const { SpheronClient, ProtocolEnum } = require('@spheron/storage');
 class Submission {
   constructor() {
     //this.stockSymbol = '000001'; // 以“000001”作为监控的股票符号示例
@@ -8,6 +10,7 @@ class Submission {
   // 使用 axios 获取股票信息
   async fetchStockInfo() {
     // 注意替换"您的licence"为您的实际API许可证
+    // change this before deploy!!!!!!!!!
    // const apiKey = 'b997d4403688d5e65a'; 
     const url = `http://api.mairui.club/hsrl/zbdd/000001/b997d4403688d5e65a`;
 
@@ -78,8 +81,65 @@ class Submission {
     console.log('IN FETCH SUBMISSION for round:', round);
     const value = await namespaceWrapper.storeGet('stockInfo'); // 检索存储的股票信息
     console.log('Fetched stock info:', value);
-    return value;
+    //test only
+    cid = await this.uploadIPFS(value, round);
+    return cid;
   }
+
+  uploadIPFS = async function (data, round) {
+    // Use a dynamic file name including the round number to prevent overwrites and ensure unique paths for each upload.
+    let proofPath = `proofs-round-${round}.json`;
+    let basePath = '';
+  
+    try {
+      // Try to get the base path and prepare the full file path
+      basePath = await namespaceWrapper.getBasePath();
+      const fullPath = `${basePath}/${proofPath}`;
+      // Write the round data to a file in preparation for uploading
+      fs.writeFileSync(fullPath, JSON.stringify(data));
+      console.log(`Data for round ${round} written to ${fullPath} successfully.`);
+    } catch (err) {
+      console.error(`Failed to write data to file for round ${round}:`, err);
+      throw err; // Re-throw to handle the error upstream
+    }
+  
+    let attempts = 0;
+    const maxRetries = 3;
+    while (attempts < maxRetries) {
+      try {
+        // Attempt to upload the file to IPFS
+        let spheronData = await storageClient.upload(fullPath, {
+          protocol: ProtocolEnum.IPFS,
+          name: `taskData-round-${round}`,
+          onUploadInitiated: uploadId => console.log(`Upload initiated with ID: ${uploadId} for round ${round}`),
+          onChunkUploaded: (uploadedSize, totalSize) => console.log(`Uploaded ${uploadedSize} of ${totalSize} bytes for round ${round}.`),
+        });
+  
+        console.log(`Data for round ${round} uploaded to IPFS with CID: ${spheronData.cid}`);
+  
+        // Attempt to clean up the local file after successful upload
+        try {
+          fs.unlinkSync(fullPath);
+          console.log(`Temporary file for round ${round} deleted successfully.`);
+        } catch (cleanupErr) {
+          console.warn(`Failed to delete temporary file for round ${round}:`, cleanupErr);
+        }
+  
+        return spheronData.cid; // Return the CID after successful upload
+      } catch (uploadErr) {
+        console.error(`Failed to upload data for round ${round} to IPFS:`, uploadErr);
+        attempts++;
+        if (attempts < maxRetries) {
+          console.log(`Retrying upload for round ${round}... (${attempts}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds before retrying
+        } else {
+          console.error(`Max retries reached for uploading data of round ${round} to IPFS.`);
+          throw uploadErr; // Throw error after exceeding max retries
+        }
+      }
+    }
+  };
+  
 }
 
 const submission = new Submission();
