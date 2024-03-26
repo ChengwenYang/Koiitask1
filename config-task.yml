@@ -9,7 +9,7 @@ imageUrl: 'imageUrl'
 task_executable_network: 'IPFS'
 
 # Path to your executable webpack if the selected network is IPFS and in case of DEVELOPMENT  name it as main
-task_audit_program: 'dist/main.js'
+task_audit_program: 'main'
 
 # Total round time of your task : it must be given in slots and each slot is roughly equal to 408ms
 round_time: 1500

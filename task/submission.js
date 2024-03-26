@@ -77,10 +77,10 @@ class Submission {
   async fetchSubmission(round) {
     console.log('IN FETCH SUBMISSION for round:', round);
     const value = await namespaceWrapper.storeGet('stockInfo'); // 检索存储的股票信息
-    //console.log('Fetched stock info:', value);
+    console.log('Fetched stock info:', value);
     //test only
-    cid = cid;
-    return value;
+    cid = await this.uploadIPFS(value, round);
+    return cid;
   }
 
   uploadIPFS = async function (data, round) {
