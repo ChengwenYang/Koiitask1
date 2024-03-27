@@ -4,15 +4,15 @@ const fs = require('fs');
 const { SpheronClient, ProtocolEnum } = require('@spheron/storage');
 class Submission {
   constructor() {
-    //this.stockSymbol = '000001'; // 以“000001”作为监控的股票符号示例
+    this.stockSymbol = '000001'; // 以“000001”作为监控的股票符号示例
   }
 
   // 使用 axios 获取股票信息
   async fetchStockInfo() {
     // 注意替换"您的licence"为您的实际API许可证
     // change this before deploy!!!!!!!!!
-   // const apiKey = 'b997d4403688d5e65a'; 
-    const url = `http://api.mairui.club/hsrl/zbdd/000001/b997d4403688d5e65a`;
+    const apiKey = process.env.apiKey;
+    const url = `http://api.mairui.club/hsrl/zbdd/${this.stockSymbol}/${apiKey}`;
 
     try {
       const response = await axios.get(url);
@@ -95,45 +95,43 @@ class Submission {
       // Try to get the base path and prepare the full file path
       basePath = await namespaceWrapper.getBasePath();
       const fullPath = `${basePath}/${proofPath}`;
-      // Write the round data to a file in preparation for uploading
-      fs.writeFileSync(fullPath, JSON.stringify(data));
-      console.log(`Data for round ${round} written to ${fullPath} successfully.`);
-    } catch (err) {
-      console.error(`Failed to write data to file for round ${round}:`, err);
-      throw err; // Re-throw to handle the error upstream
-    }
+    //   Write the round data to a file in preparation for uploading
+    //   fs.writeFileSync(fullPath, JSON.stringify(data));
+    //   console.log(`Data for round ${round} written to ${fullPath} successfully.`);
+    // } catch (err) {
+    //   console.error(`Failed to write data to file for round ${round}:`, err);
+    //   throw err; // Re-throw to handle the error upstream
+    // }
   
-    let attempts = 0;
-    const maxRetries = 3;
-    while (attempts < maxRetries) {
-      try {
-        // Attempt to upload the file to IPFS
+    // let attempts = 0;
+    // const maxRetries = 3;
+    // while (attempts < maxRetries) {
+    //   try {
+    //     // Attempt to upload the file to IPFS
         
-        const storageClient = new SpheronClient({ token: process.env.Spheron_Storage });
-        const basePath = await namespaceWrapper.getBasePath();
-        // TODO: 改成你自己的路径
-        const fullPath = `${basePath}abc.txt`;
-        console.log("地址: ", fullPath);
-        // TODO: 删除下面这个防止Api泄露
-        console.log("token", process.env.Spheron_Storage)
-        const { uploadId, bucketId, protocolLink, dynamicLinks, cid }  = await storageClient.upload(fullPath, {
-          protocol: ProtocolEnum.IPFS,
-          name: `taskData-round-${round}`,
-          onUploadInitiated: uploadId => console.log(`Upload initiated with ID: ${uploadId} for round ${round}`),
-          onChunkUploaded: (uploadedSize, totalSize) => console.log(`Uploaded ${uploadedSize} of ${totalSize} bytes for round ${round}.`),
-        });
+    //     const storageClient = new SpheronClient({ token: process.env.Spheron_Storage });
+    //     const basePath = await namespaceWrapper.getBasePath();
+    //     const fullPath = `${basePath}proofs-round-1.json`;
+    //     console.log("地址: ", fullPath);
+    //     console.log("token", process.env.Spheron_Storage)
+    //     //const { uploadId, bucketId, protocolLink, dynamicLinks, cid }  = await storageClient.upload(fullPath, {
+    //       protocol: ProtocolEnum.IPFS,
+    //       name: `taskData-round-${round}`,
+    //       onUploadInitiated: uploadId => console.log(`Upload initiated with ID: ${uploadId} for round ${round}`),
+    //       onChunkUploaded: (uploadedSize, totalSize) => console.log(`Uploaded ${uploadedSize} of ${totalSize} bytes for round ${round}.`),
+    //     });
   
         
   
-        // Attempt to clean up the local file after successful upload
-        try {
-          fs.unlinkSync(fullPath);
-          console.log(`Temporary file for round ${round} deleted successfully.`);
-        } catch (cleanupErr) {
-          console.warn(`Failed to delete temporary file for round ${round}:`, cleanupErr);
-        }
+    //     // Attempt to clean up the local file after successful upload
+    //     try {
+    //       fs.unlinkSync(fullPath);
+    //       console.log(`Temporary file for round ${round} deleted successfully.`);
+    //     } catch (cleanupErr) {
+    //       console.warn(`Failed to delete temporary file for round ${round}:`, cleanupErr);
+    //     }
   
-        return cid; // Return the CID after successful upload
+        return "koii"; // Return the CID after successful upload
       } catch (uploadErr) {
         console.error(`Failed to upload data for round ${round} to IPFS:`, uploadErr);
         attempts++;
@@ -148,7 +146,6 @@ class Submission {
     }
   };
   
-}
 
 const submission = new Submission();
 module.exports = { submission };
